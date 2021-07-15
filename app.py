@@ -1,5 +1,5 @@
 from flask import Flask, request
-from flask_restful import Resource, Api
+from flask_restful import Resource, Api, reqparse
 from flask_jwt import JWT, jwt_required
 from security import authenticate, identity
 
@@ -12,6 +12,16 @@ students = []
 
 
 class Student(Resource):
+    parser = reqparse.RequestParser()
+    parser.add_argument('Address',
+                        type=str,
+                        required=True,
+                        help='Address is required')
+    parser.add_argument('Alma_mater',
+                        type=str,
+                        required=True,
+                        help='Alma mater is required')
+
     @jwt_required()
     def get(self, name):
         student = next(filter(lambda x: x['name'] == name, students), None)
@@ -20,7 +30,7 @@ class Student(Resource):
     def post(self, name):
         if next(filter(lambda x: x['name'] == name, students), None):
             return {'error_message': 'Student already exists.'}, 400
-        data = request.get_json()
+        data = Student.parser.parse_args()
         student = {'name': name, 'Address': data['address'], 'Alma_mater': data['alma_mater']}
         students.append(student)
         return student, 201
@@ -31,10 +41,10 @@ class Student(Resource):
         return students
 
     def put(self, name):
-        data = request.get_json()
         student = next(filter(lambda x: x['name'] == name, students), None)
         if student is None:
             return {'error_message': 'Student does not exist.'}, 404
+        data = Student.parser.parse_args()
         student.update(data)
         return student
 
